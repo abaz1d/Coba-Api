@@ -33,6 +33,7 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="button" class="btn btn-warning" onclick="resetSearch()">Reset</button>
                 </form>
             </div>
             <table id="table-users" class="table table-striped">
@@ -127,7 +128,19 @@
         let idDeleted = null;
 
         let params = {
-            page: 1
+            page: 1,
+            sortBy: '_id',
+            sortMode: 'asc'
+        }
+
+        const resetSearch = () => {
+            $('#form-user-search').trigger('reset')
+            params = {
+                page: 1,
+                sortBy: '_id',
+                sortMode: 'asc'
+            }
+            readData()
         }
 
         $(document).ready(function () {
@@ -142,7 +155,7 @@
                 event.preventDefault()
                 const name = $('#s-name').val()
                 const address = $('#s-address').val()
-                params = {...params, name, address, page: 1}
+                params = { ...params, name, address, page: 1 }
                 readData()
             })
 
