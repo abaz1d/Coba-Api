@@ -1,0 +1,276 @@
+<html>
+
+<head>
+    <title>Express</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheets/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
+        crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header" style="text-align: center;">
+                <h1>Daftar Anggota</h1>
+            </div>
+            <div class="card-body">
+                <form id="form-user-search">
+                    <div class="row mb-3">
+                        <label for="name" class="col-sm-2 col-form-label">Name</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="s-name" name="name">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="address" class="col-sm-2 col-form-label">Address</label>
+                        <div class="col-sm-10">
+                            <textarea name="address" id="s-address" cols="30" rows="3" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+            </div>
+            <table id="table-users" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+            <nav id="pagination-view" aria-label="Page navigation">
+
+            </nav>
+            <div class="card-footer">
+                <button type="button" class="btn btn-primary" onclick="addData()">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <form id="form-user">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Form</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="$('#modal-form').modal('hide')">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="row mb-3">
+                            <label for="name" class="col-sm-2 col-form-label">Name</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="name" name="name">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="address" class="col-sm-2 col-form-label">Address</label>
+                            <div class="col-sm-10">
+                                <textarea name="address" id="address" cols="30" rows="3"
+                                    class="form-control"></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                            onclick="$('#modal-form').modal('hide')">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-delete" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                        onclick="$('#modal-delete').modal('hide')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-deleted" type="button" class="btn btn-primary">Yes</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                        onclick="$('#modal-delete').modal('hide')">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let idEdit = null;
+        let idDeleted = null;
+
+        let params = {
+            page: 1
+        }
+
+        $(document).ready(function () {
+            readData()
+
+            $('#form-user').submit(function (event) {
+                event.preventDefault()
+                saveData()
+            })
+
+            $('#form-user-search').submit(function (event) {
+                event.preventDefault()
+                const name = $('#s-name').val()
+                const address = $('#s-address').val()
+                params = {...params, name, address, page: 1}
+                readData()
+            })
+
+            $('#table-users').on('click', '.btn-delete', function () {
+                idDeleted = $(this).attr('dataid')
+                $('#modal-delete').modal('show')
+            })
+
+            $('#btn-deleted').click(function () {
+                removeData(idDeleted)
+                $('#modal-delete').modal('hide')
+                idDeleted = null;
+            })
+        })
+
+        const pagination = (page, pages) => {
+            let html = `<ul class="pagination">
+                    <li class="page-item${page == 1 ? ' disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" aria-label="Previous" onclick="changePage(${page - 1})">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>`
+            for (let i = 1; i <= pages; i++) {
+                html += `<li class="page-item${page == i ? ' active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})">${i}</a></li>`
+            }
+            html += `<li class="page-item${page == pages ? ' disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" aria-label="Next" onclick="changePage(${page + 1})">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>`
+            $('#pagination-view').html(html)
+        }
+
+        const addData = () => {
+            $('#modal-form').modal('show')
+            idEdit = null;
+            $('#name').val('')
+            $('#address').val('')
+        }
+
+        const readData = () => {
+            $.ajax({
+                url: '/users',
+                method: 'GET',
+                dataType: 'json',
+                data: params
+            }).done(({ data, page, pages, offset }) => {
+                let html = ''
+                data.forEach((item, index) => {
+                    html += `
+            <tr>
+              <td>${offset + index + 1}</td>
+              <td>${item.name}</td>
+              <td>${item.address}</td>
+              <td>
+                <button type="button" class="btn btn-success" onclick='editData(${JSON.stringify(item)})'>Edit</button>
+                <button type="button" class="btn btn-danger btn-delete" dataid="${item._id}">Remove</button>
+              </td>
+            </tr>
+            `
+                })
+                $('#table-users tbody').html(html)
+                pagination(page, pages)
+            }).fail((err) => {
+                alert(err)
+            })
+        }
+
+        const changePage = (page) => {
+            params.page = page
+            readData()
+        }
+
+        const saveData = () => {
+            const name = $('#name').val()
+            const address = $('#address').val()
+
+            if (idEdit == null) {
+                $.ajax({
+                    url: '/users',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { name, address }
+                }).done((data) => {
+                    readData()
+                }).fail((err) => {
+                    alert(err)
+                })
+            } else {
+                $.ajax({
+                    url: `/users/${idEdit}`,
+                    method: 'PUT',
+                    dataType: 'json',
+                    data: { name, address }
+                }).done((data) => {
+                    readData()
+                }).fail((err) => {
+                    alert(err)
+                })
+                idEdit = null;
+            }
+            $('#name').val('')
+            $('#address').val('')
+            $('#modal-form').modal('hide')
+        }
+
+        const removeData = (id) => {
+            $.ajax({
+                url: `/users/${id}`,
+                method: 'DELETE',
+                dataType: 'json'
+            }).done((data) => {
+                readData()
+            }).fail((err) => {
+                alert(err)
+            })
+        }
+
+        const editData = (user) => {
+            idEdit = user._id
+            $('#name').val(user.name)
+            $('#address').val(user.address)
+            $('#modal-form').modal('show')
+        }
+
+
+    </script>
+</body>
+
+</html>

@@ -7,9 +7,31 @@ module.exports = function (db) {
 
   router.get('/', async function (req, res, next) {
     try {
-      const findResult = await collection.find({}).toArray();
-      res.status(200).json(findResult)
+      // searching
+      const {name, address} = req.query
+      const params = {}
+      if(name){
+        params['name'] = new RegExp(name, 'i')
+      }
+
+      if(address){
+        params['address'] = new RegExp(address, 'i')
+      }
+
+      const page = req.query.page || 1
+      const limit = 3
+      const offset = (page - 1) * limit
+      const total = await collection.countDocuments(params)
+      const pages = Math.ceil(total / limit)
+      const findResult = await collection.find(params).limit(limit).skip(offset).toArray();
+      res.status(200).json({
+        data: findResult,
+        page: parseInt(page),
+        pages: pages,
+        offset
+      })
     } catch (e) {
+      console.log(e)
       res.json(e)
     }
   });
